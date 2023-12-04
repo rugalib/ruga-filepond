@@ -1,0 +1,44 @@
+{
+  "name": "rugalib/ruga-skeleton",
+  "description": "Template for rugalib components",
+  "license": "AGPL-3.0-only",
+  "homepage": "https://github.com/rugalib",
+  "type": "library",
+  "require": {
+    "php": "^7.4|^8.0|^8.1|^8.2"
+  },
+  "require-dev": {
+    "phpunit/phpunit": "^9.6",
+    "laminas/laminas-config-aggregator": "^1.7",
+    "laminas/laminas-servicemanager": "^3.11",
+    "rugalib/ruga-db": "^1.4"
+  },
+  "repositories": [
+    {
+      "type": "composer",
+      "url": "https://packages.rugalib.ch/"
+    }
+  ],
+  "authors": [
+    {
+      "name": "Roland Rusch",
+      "email": "roland.rusch@easy-smart.ch"
+    }
+  ],
+  "autoload": {
+    "psr-4": {
+      "Ruga\\Skeleton\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Ruga\\Skeleton\\Test\\": "test/src"
+    }
+  },
+  "extra": {
+    "laminas": {
+      "component": "Ruga\\Skeleton",
+      "config-provider": "Ruga\\Skeleton\\ConfigProvider"
+    }
+  }
+}
