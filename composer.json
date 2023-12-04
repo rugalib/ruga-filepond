@@ -1,6 +1,6 @@
 {
-  "name": "rugalib/ruga-skeleton",
-  "description": "Template for rugalib components",
+  "name": "rugalib/ruga-filepond",
+  "description": "Middleware for filepond uploader",
   "license": "AGPL-3.0-only",
   "homepage": "https://github.com/rugalib",
   "type": "library",
@@ -27,18 +27,18 @@
   ],
   "autoload": {
     "psr-4": {
-      "Ruga\\Skeleton\\": "src/"
+      "Ruga\\Filepond\\": "src/"
     }
   },
   "autoload-dev": {
     "psr-4": {
-      "Ruga\\Skeleton\\Test\\": "test/src"
+      "Ruga\\Filepond\\Test\\": "test/src"
     }
   },
   "extra": {
     "laminas": {
-      "component": "Ruga\\Skeleton",
-      "config-provider": "Ruga\\Skeleton\\ConfigProvider"
+      "component": "Ruga\\Filepond",
+      "config-provider": "Ruga\\Filepond\\ConfigProvider"
     }
   }
 }
