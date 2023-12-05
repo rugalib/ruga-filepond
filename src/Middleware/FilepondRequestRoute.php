@@ -17,6 +17,7 @@ use Ruga\Std\Enum\EnumInterface;
  * @method static self REVERT_FILE_TRANSFER()
  * @method static self RESTORE_FILE_TRANSFER()
  * @method static self LOAD_LOCAL_FILE()
+ * @method static self REMOVE_LOCAL_FILE()
  * @method static self FETCH_REMOTE_FILE()
  * @method static self UNKNOWN()
  */
@@ -27,6 +28,7 @@ class FilepondRequestRoute extends AbstractEnum implements EnumInterface
     const REVERT_FILE_TRANSFER = 'REVERT_FILE_TRANSFER';
     const RESTORE_FILE_TRANSFER = 'RESTORE_FILE_TRANSFER';
     const LOAD_LOCAL_FILE = 'LOAD_LOCAL_FILE';
+    const REMOVE_LOCAL_FILE = 'REMOVE_LOCAL_FILE';
     const FETCH_REMOTE_FILE = 'FETCH_REMOTE_FILE';
     const UNKNOWN = 'UNKNOWN';
 }

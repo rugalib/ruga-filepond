@@ -13,6 +13,8 @@ use Laminas\Diactoros\Response;
 use Laminas\Diactoros\Stream;
 use Psr\Http\Message\ResponseInterface;
 
+use function FilePond\move_file;
+
 class FileUpload
 {
     private string $transferId;
@@ -42,6 +44,28 @@ class FileUpload
     
     
     /**
+     * This factory creates a FileUpload from meta data.
+     *
+     * @param array  $postGlobalVar
+     * @param string $basepath
+     *
+     * @return FileUpload
+     */
+    public static function createFromMetadata(array $postGlobalVar, string $basepath)
+    {
+        $fileGlobalVar = [
+            'name' => '',
+            'type' => '',
+            'size' => -1,
+            'tmp_name' => '',
+            'error' => 0,
+        ];
+        return new FileUpload($fileGlobalVar, $postGlobalVar, $basepath);
+    }
+    
+    
+    
+    /**
      * Create a FileUpload object from a serialized (previous) upload.
      *
      * @param string $transferId
@@ -66,6 +90,16 @@ class FileUpload
     
     
     
+    /**
+     * This factory creates a FileUpload from a fetch url. The file is downloaded from an external source and stored
+     * in a upload directory.
+     *
+     * @param string $fetchUrl
+     * @param string $basepath
+     *
+     * @return self
+     * @throws \Exception
+     */
     public static function createFromFetchUrl(string $fetchUrl, string $basepath): self
     {
         $tempfile = tmpfile();
@@ -103,6 +137,13 @@ class FileUpload
     
     
     
+    /**
+     * Set the temporary directory base path.
+     *
+     * @param string $basepath
+     *
+     * @return void
+     */
     protected function setBasepath(string $basepath)
     {
         $this->basepath = $basepath;
@@ -110,6 +151,11 @@ class FileUpload
     
     
     
+    /**
+     * Return the transfer id, or create a new one.
+     *
+     * @return string
+     */
     public function getTransferId(): string
     {
         if (empty($this->transferId)) {
@@ -120,6 +166,11 @@ class FileUpload
     
     
     
+    /**
+     * Return true, if upload has an error.
+     *
+     * @return bool
+     */
     public function hasError(): bool
     {
         return ($this->error !== 0);
@@ -154,6 +205,11 @@ class FileUpload
     
     
     
+    /**
+     * Return the filename of the data file in the temporary upload folder.
+     *
+     * @return string
+     */
     public function getTempDataFileName(): string
     {
         return $this->getTransferDirectory() . DIRECTORY_SEPARATOR . 'data.bin';
@@ -161,6 +217,23 @@ class FileUpload
     
     
     
+    /**
+     * Return the filename, where chunks are stored. AKA The temporary temp. file.
+     *
+     * @return string
+     */
+    public function getTempChunkFileName(): string
+    {
+        return $this->getTransferDirectory() . DIRECTORY_SEPARATOR . 'data.tmp';
+    }
+    
+    
+    
+    /**
+     * Return the filename, where metadata ist stored.
+     *
+     * @return string
+     */
     public function getTempMetaFileName(): string
     {
         return $this->getTransferDirectory() . DIRECTORY_SEPARATOR . '.metadata';
@@ -168,6 +241,11 @@ class FileUpload
     
     
     
+    /**
+     * Return the filename, where serialized FileUpload is stored.
+     *
+     * @return string
+     */
     public function getTempFileUploadObjectFileName(): string
     {
         return $this->getTransferDirectory() . DIRECTORY_SEPARATOR . '.fileupload';
@@ -175,6 +253,11 @@ class FileUpload
     
     
     
+    /**
+     * Return metadata.
+     *
+     * @return array
+     */
     public function getMetadata(): array
     {
         return $this->metadata;
@@ -182,8 +265,16 @@ class FileUpload
     
     
     
+    /**
+     * Store the metadata to the temporary upload folder.
+     *
+     * @return void
+     * @throws \Exception
+     */
     public function storeUploadTempMetafile()
     {
+        \Ruga\Log::functionHead();
+        
         $a = [
             'transferId' => $this->getTransferId(),
             'name' => $this->name,
@@ -199,42 +290,107 @@ class FileUpload
     
     
     /**
-     * Store the upload temporary data file.
+     * Store the upload to the temporary data file.
      *
      * @return void
+     * @throws \Exception
      */
     public function storeUploadDataFromUploadFile()
     {
+        \Ruga\Log::functionHead();
+        
         if (!is_uploaded_file($this->tmp_name)) {
             throw new \InvalidArgumentException("'{$this->tmp_name}' is not an uploaded file");
         }
         $this->prepareDirectory();
+        touch($this->getTempDataFileName());
         if (!move_uploaded_file($this->tmp_name, $this->getTempDataFileName())) {
             throw new \RuntimeException("Error moving '{$this->tmp_name}'");
         }
     }
     
-    public function storeUploadDataFromFile(?string $filepath=null)
+    
+    
+    /**
+     * Copy or move the file in tmp_name to the temporary upload folder.
+     *
+     * @param $moveNotCopy
+     *
+     * @return void
+     * @throws \Exception
+     */
+    public function storeUploadDataFromFile($moveNotCopy = false)
     {
-        if($filepath !== null) {
-            $this->tmp_name = $filepath;
-        }
-        if(!file_exists($this->tmp_name)) {
+        \Ruga\Log::functionHead();
+        
+        if (!file_exists($this->tmp_name)) {
             throw new \InvalidArgumentException("'{$this->tmp_name}' not found");
         }
         $this->prepareDirectory();
-        if(!copy($this->tmp_name, $this->getTempDataFileName())) {
-            throw new \RuntimeException("Error copying '{$this->tmp_name}'");
+//        touch($this->getTempDataFileName());
+        if ($moveNotCopy) {
+            if (!rename($this->tmp_name, $this->getTempDataFileName())) {
+                throw new \RuntimeException("Error renaming '{$this->tmp_name}'");
+            }
+        } else {
+            if (!copy($this->tmp_name, $this->getTempDataFileName())) {
+                throw new \RuntimeException("Error copying '{$this->tmp_name}'");
+            }
         }
     }
+    
+    
+    
+    /**
+     * Stores the given chunk in the temporary temp. file when processing chunked upload.
+     *
+     * @param Stream $chunk
+     * @param int    $offset
+     *
+     * @return void
+     */
+    public function storeUploadChunk(Stream $chunk, int $offset)
+    {
+        $this->prepareDirectory();
+        $this->tmp_name = $this->getTempChunkFileName();
+        touch($this->tmp_name);
+        
+        if (filesize($this->tmp_name) != $offset) {
+            throw new \OutOfRangeException("Chunk mismatch");
+        }
+        
+        if (false === file_put_contents($this->tmp_name, $chunk, FILE_APPEND | LOCK_EX)) {
+            throw new \RuntimeException("Error writing chunk to '{$this->tmp_name}'");
+        }
+    }
+    
+    
+    
+    /**
+     * Checks, if upload (chunked) file is complete.
+     *
+     * @return bool
+     * @throws \Exception
+     */
+    public function isUploadedFileComplete(): bool
+    {
+        clearstatcache();
+        \Ruga\Log::addLog("{$this->tmp_name} | filesize=" . filesize($this->tmp_name) . " | size=" . $this->size);
+        return is_file($this->tmp_name) && (filesize($this->tmp_name) == $this->size);
+    }
+    
+    
     
     /**
      * Remove the upload temporary directory.
      *
      * @return void
+     * @throws \Exception
      */
     public function deleteUploadTempDir()
     {
+        \Ruga\Log::functionHead();
+        
         $files = glob($this->getTransferDirectory() . DIRECTORY_SEPARATOR . '{.,}*', GLOB_BRACE);
         @array_map('unlink', $files);
         @rmdir($this->getTransferDirectory());
@@ -255,11 +411,10 @@ class FileUpload
             'Access-Control-Expose-Headers',
             'Content-Disposition, Content-Length, X-Content-Transfer-Id'
         );
-        $response = $response->withHeader('X-Content-Transfer-Id', $this->getTransferId());
         $response = $response->withHeader('Content-Type', $this->type);
         $response = $response->withHeader('Content-Length', $this->size);
         $response = $response->withHeader('Content-Disposition', "inline; filename=\"{$this->name}\"");
-        return $response;
+        return $response->withHeader('X-Content-Transfer-Id', $this->getTransferId());
     }
     
     
@@ -267,13 +422,46 @@ class FileUpload
     /**
      * Return a response containing all headers for a HEAD request.
      *
+     * @param int $status
+     *
      * @return ResponseInterface
      */
-    public function getHeadResponse(): ResponseInterface
+    public function getHeadResponse(int $status = 204): ResponseInterface
     {
-        $response = new Response\EmptyResponse();
+        $response = new Response\EmptyResponse($status);
+        if (is_file($this->getTempChunkFileName()) && !$this->isUploadedFileComplete()) {
+            $response = $response->withHeader('Upload-Offset', filesize($this->getTempChunkFileName()));
+        }
         return $response->withHeader('X-Content-Transfer-Id', $this->getTransferId());
     }
     
     
+    
+    /**
+     * Set upload length. Used by chunked process.
+     *
+     * @param int $length
+     *
+     * @return void
+     */
+    public function setUploadLength(int $length)
+    {
+        if ($this->size < 0) {
+            $this->size = $length;
+        }
+    }
+    
+    
+    
+    /**
+     * Set the client (real) file name.
+     *
+     * @param string $name
+     *
+     * @return void
+     */
+    public function setName(string $name)
+    {
+        $this->name = $name;
+    }
 }

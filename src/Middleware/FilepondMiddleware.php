@@ -11,6 +11,7 @@ namespace Ruga\Filepond\Middleware;
 use Fig\Http\Message\RequestMethodInterface;
 use Laminas\Diactoros\Response\EmptyResponse;
 use Laminas\Diactoros\Response\TextResponse;
+use Laminas\Diactoros\Stream;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\MiddlewareInterface;
@@ -71,32 +72,31 @@ class FilepondMiddleware implements MiddlewareInterface
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
         \Ruga\Log::functionHead($this);
+        
         $entries = ['filepond'];
         
         try {
             foreach ($entries as $fieldname) {
                 $filepondRequest = new FilepondRequest($request, $fieldname, $this->uploadTempDir);
                 
-                if ($filepondRequest->isFileTransfer()) {
-                    return $this->processFileTransfer($filepondRequest);
-                }
-                
-                if ($filepondRequest->isRevertFileTransfer()) {
-                    return $this->processRevertFileTransfer($filepondRequest);
-                }
-                
-                if ($filepondRequest->isRestoreRequest()) {
-                    return $this->processRestoreRequest($filepondRequest);
-                }
-                
                 switch ($filepondRequest->getRequestRoute()) {
+                    case FilepondRequestRoute::FILE_TRANSFER():
+                        return $this->processFileTransfer($filepondRequest);
+                    
+                    case FilepondRequestRoute::REVERT_FILE_TRANSFER():
+                        return $this->processRevertFileTransfer($filepondRequest);
+                    
+                    case FilepondRequestRoute::RESTORE_FILE_TRANSFER():
+                        return $this->processRestoreRequest($filepondRequest);
+                    
                     case FilepondRequestRoute::FETCH_REMOTE_FILE():
                         return $this->processFetchRequest($filepondRequest);
+                    
+                    case FilepondRequestRoute::PATCH_FILE_TRANSFER():
+                        return $this->processPatchRequest($filepondRequest);
                 }
             }
             
-            
-            $filepondResponse = new FilepondResponse();
             return new TextResponse("NO RESPONSE", 500);
         } catch (\Exception $e) {
             \Ruga\Log::addLog($e);
@@ -106,6 +106,16 @@ class FilepondMiddleware implements MiddlewareInterface
     
     
     
+    /**
+     * Process the file transfer request.
+     *
+     * @see https://pqina.nl/filepond/docs/api/server/#process
+     *
+     * @param FilepondRequest $request
+     *
+     * @return ResponseInterface
+     * @throws \Exception
+     */
     private function processFileTransfer(FilepondRequest $request): ResponseInterface
     {
         \Ruga\Log::functionHead();
@@ -134,7 +144,9 @@ class FilepondMiddleware implements MiddlewareInterface
         /** @var FileUpload $fileUpload */
         foreach ($request->getFileUploads() as $fileUpload) {
             $fileUpload->storeUploadTempMetafile();
-            $fileUpload->storeUploadDataFromUploadFile();
+            if ($fileUpload->isUploadedFileComplete()) {
+                $fileUpload->storeUploadDataFromUploadFile();
+            }
             
             return new TextResponse($fileUpload->getTransferId(), 201);
         }
@@ -144,6 +156,16 @@ class FilepondMiddleware implements MiddlewareInterface
     
     
     
+    /**
+     * Process the revert request.
+     *
+     * @see https://pqina.nl/filepond/docs/api/server/#revert
+     *
+     * @param FilepondRequest $request
+     *
+     * @return ResponseInterface
+     * @throws \Exception
+     */
     private function processRevertFileTransfer(FilepondRequest $request): ResponseInterface
     {
         \Ruga\Log::functionHead();
@@ -162,6 +184,16 @@ class FilepondMiddleware implements MiddlewareInterface
     
     
     
+    /**
+     * Process the restore process.
+     *
+     * @see https://pqina.nl/filepond/docs/api/server/#restore
+     *
+     * @param FilepondRequest $request
+     *
+     * @return ResponseInterface
+     * @throws \Exception
+     */
     private function processRestoreRequest(FilepondRequest $request): ResponseInterface
     {
         \Ruga\Log::functionHead();
@@ -173,11 +205,27 @@ class FilepondMiddleware implements MiddlewareInterface
         /** @var FileUpload $file */
         $file = $request->getFileUploads()[0];
         
+        
+        if ($request->getRequest()->getMethod() == RequestMethodInterface::METHOD_HEAD) {
+            return $file->getHeadResponse(200);
+        }
+        
+        
         return $file->getFileResponse();
     }
     
     
     
+    /**
+     * Process the fetch request.
+     *
+     * @see https://pqina.nl/filepond/docs/api/server/#fetch
+     *
+     * @param FilepondRequest $request
+     *
+     * @return ResponseInterface
+     * @throws \Exception
+     */
     private function processFetchRequest(FilepondRequest $request): ResponseInterface
     {
         \Ruga\Log::functionHead();
@@ -194,6 +242,52 @@ class FilepondMiddleware implements MiddlewareInterface
         }
         
         return $file->getFileResponse();
+    }
+    
+    
+    
+    /**
+     * Process the patch request.
+     *
+     * @see https://pqina.nl/filepond/docs/api/server/#process-chunks
+     *
+     * @param FilepondRequest $request
+     *
+     * @return ResponseInterface
+     * @throws \Exception
+     */
+    private function processPatchRequest(FilepondRequest $request): ResponseInterface
+    {
+        \Ruga\Log::functionHead();
+        
+        if (count($request->getFileUploads()) == 0) {
+            return new EmptyResponse(404);
+        }
+        
+        /** @var FileUpload $file */
+        $file = $request->getFileUploads()[0];
+
+//        $contentlength = intval($request->getRequest()->getHeaderLine('Content-Length'));
+//        $uploadlength = intval($request->getRequest()->getHeaderLine('Upload-Length'));
+        $offset = intval($request->getRequest()->getHeaderLine('Upload-Offset'));
+        $name = strval($request->getRequest()->getHeaderLine('Upload-Name'));
+        
+        $file->setName($name);
+        
+        
+        // HEAD request: return the offset
+        if ($request->getRequest()->getMethod() == RequestMethodInterface::METHOD_HEAD) {
+            return $file->getHeadResponse();
+        }
+        
+        $file->storeUploadChunk(new Stream('php://input', 'r'), $offset);
+        
+        if ($file->isUploadedFileComplete()) {
+            $file->storeUploadDataFromFile(true);
+        }
+        
+        $file->storeUploadTempMetafile();
+        return new EmptyResponse(204);
     }
     
     
