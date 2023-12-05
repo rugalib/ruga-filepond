@@ -438,7 +438,7 @@ class FileUpload
         $response = new Response($fileStream);
         $response = $response->withHeader(
             'Access-Control-Expose-Headers',
-            'Content-Disposition, Content-Length, X-Content-Transfer-Id'
+            'Content-Disposition, Content-Length, Content-Type, X-Content-Transfer-Id'
         );
         $response = $response->withHeader('Content-Type', $this->type);
         $response = $response->withHeader('Content-Length', $this->size);
