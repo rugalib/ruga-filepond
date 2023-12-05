@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Ruga\Filepond\Middleware;
 
+use Fig\Http\Message\RequestMethodInterface;
 use Laminas\Diactoros\Response\EmptyResponse;
 use Laminas\Diactoros\Response\TextResponse;
 use Psr\Http\Message\ResponseInterface;
@@ -87,6 +88,11 @@ class FilepondMiddleware implements MiddlewareInterface
                 if ($filepondRequest->isRestoreRequest()) {
                     return $this->processRestoreRequest($filepondRequest);
                 }
+                
+                switch ($filepondRequest->getRequestRoute()) {
+                    case FilepondRequestRoute::FETCH_REMOTE_FILE():
+                        return $this->processFetchRequest($filepondRequest);
+                }
             }
             
             
@@ -94,7 +100,7 @@ class FilepondMiddleware implements MiddlewareInterface
             return new TextResponse("NO RESPONSE", 500);
         } catch (\Exception $e) {
             \Ruga\Log::addLog($e);
-            return new TextResponse($e->getMessage(), 500);
+            return new TextResponse($e->getMessage() . PHP_EOL . $e->getTraceAsString(), 500);
         }
     }
     
@@ -128,7 +134,7 @@ class FilepondMiddleware implements MiddlewareInterface
         /** @var FileUpload $fileUpload */
         foreach ($request->getFileUploads() as $fileUpload) {
             $fileUpload->storeUploadTempMetafile();
-            $fileUpload->storeUploadTempFile();
+            $fileUpload->storeUploadDataFromUploadFile();
             
             return new TextResponse($fileUpload->getTransferId(), 201);
         }
@@ -165,11 +171,29 @@ class FilepondMiddleware implements MiddlewareInterface
         }
         
         /** @var FileUpload $file */
-        $file=$request->getFileUploads()[0];
+        $file = $request->getFileUploads()[0];
         
         return $file->getFileResponse();
+    }
+    
+    
+    
+    private function processFetchRequest(FilepondRequest $request): ResponseInterface
+    {
+        \Ruga\Log::functionHead();
         
-//        return new EmptyResponse(500);
+        if (count($request->getFileUploads()) == 0) {
+            return new EmptyResponse(404);
+        }
+        
+        /** @var FileUpload $file */
+        $file = $request->getFileUploads()[0];
+        
+        if ($request->getRequest()->getMethod() == RequestMethodInterface::METHOD_HEAD) {
+            return $file->getHeadResponse();
+        }
+        
+        return $file->getFileResponse();
     }
     
     

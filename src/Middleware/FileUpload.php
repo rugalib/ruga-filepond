@@ -51,6 +51,9 @@ class FileUpload
      */
     public static function createFromTransferId(string $transferId, string $basepath): self
     {
+        if (empty($transferId)) {
+            throw new \InvalidArgumentException("transferId is empty");
+        }
         $path = $basepath . DIRECTORY_SEPARATOR . $transferId . DIRECTORY_SEPARATOR . '.fileupload';
         if (!is_file($path)) {
             throw new \InvalidArgumentException("Transfer not found");
@@ -58,6 +61,43 @@ class FileUpload
         /** @var FileUpload $fileUpload */
         $fileUpload = unserialize(file_get_contents($path));
         $fileUpload->setBasepath($basepath);
+        return $fileUpload;
+    }
+    
+    
+    
+    public static function createFromFetchUrl(string $fetchUrl, string $basepath): self
+    {
+        $tempfile = tmpfile();
+        
+        // go!
+        $ch = curl_init(str_replace(' ', '%20', $fetchUrl));
+        curl_setopt($ch, CURLOPT_FILE, $tempfile);
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 50);
+        
+        if (!curl_exec($ch)) {
+            throw new \Exception(curl_error($ch), curl_errno($ch));
+        }
+        
+        $type = curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
+        $size = curl_getinfo($ch, CURLINFO_CONTENT_LENGTH_DOWNLOAD);
+        $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        
+        curl_close($ch);
+        
+        
+        $fileGlobalVar = [
+            'tmp_name' => stream_get_meta_data($tempfile)['uri'],
+            'name' => pathinfo($fetchUrl)['basename'],
+            'type' => $type,
+            'size' => $size,
+            'error' => $code >= 200 && $code < 300 ? 0 : $code,
+        ];
+        
+        $fileUpload = new FileUpload($fileGlobalVar, [], $basepath);
+        $fileUpload->storeUploadTempMetafile();
+        $fileUpload->storeUploadDataFromFile();
         return $fileUpload;
     }
     
@@ -163,7 +203,7 @@ class FileUpload
      *
      * @return void
      */
-    public function storeUploadTempFile()
+    public function storeUploadDataFromUploadFile()
     {
         if (!is_uploaded_file($this->tmp_name)) {
             throw new \InvalidArgumentException("'{$this->tmp_name}' is not an uploaded file");
@@ -174,7 +214,19 @@ class FileUpload
         }
     }
     
-    
+    public function storeUploadDataFromFile(?string $filepath=null)
+    {
+        if($filepath !== null) {
+            $this->tmp_name = $filepath;
+        }
+        if(!file_exists($this->tmp_name)) {
+            throw new \InvalidArgumentException("'{$this->tmp_name}' not found");
+        }
+        $this->prepareDirectory();
+        if(!copy($this->tmp_name, $this->getTempDataFileName())) {
+            throw new \RuntimeException("Error copying '{$this->tmp_name}'");
+        }
+    }
     
     /**
      * Remove the upload temporary directory.
@@ -209,5 +261,19 @@ class FileUpload
         $response = $response->withHeader('Content-Disposition', "inline; filename=\"{$this->name}\"");
         return $response;
     }
+    
+    
+    
+    /**
+     * Return a response containing all headers for a HEAD request.
+     *
+     * @return ResponseInterface
+     */
+    public function getHeadResponse(): ResponseInterface
+    {
+        $response = new Response\EmptyResponse();
+        return $response->withHeader('X-Content-Transfer-Id', $this->getTransferId());
+    }
+    
     
 }

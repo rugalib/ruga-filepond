@@ -36,8 +36,8 @@ class FilepondRequest
         \Ruga\Log::addLog('_FILES=' . print_r($_FILES[$fieldname] ?? null, true));
         
         
-        switch ($this->getRequest()->getMethod()) {
-            case RequestMethodInterface::METHOD_POST:
+        switch ($this->getRequestRoute()) {
+            case FilepondRequestRoute::FILE_TRANSFER():
                 // Create a FileUpload object for each uploaded file
                 if (isset($_FILES[$fieldname])) {
                     if (is_array($_FILES[$fieldname]['tmp_name'])) {
@@ -65,23 +65,70 @@ class FilepondRequest
                     }
                 }
                 break;
+                
             
-            case RequestMethodInterface::METHOD_DELETE:
+            case FilepondRequestRoute::REVERT_FILE_TRANSFER():
                 $transferId = file_get_contents('php://input');
                 $this->fileUploads[] = FileUpload::createFromTransferId($transferId, $uploadTempDir);
                 break;
-                
+            
+            
+            case FilepondRequestRoute::FETCH_REMOTE_FILE():
+                $fetchUrl = $this->getRequest()->getQueryParams()['fetch'] ?? '';
+                $this->fileUploads[] = FileUpload::createFromFetchUrl($fetchUrl, $uploadTempDir);
+                break;
+            
+            
+            case FilepondRequestRoute::RESTORE_FILE_TRANSFER():
+                $transferId = $this->getRequest()->getQueryParams()['restore'] ?? '';
+                $this->fileUploads[] = FileUpload::createFromTransferId($transferId, $uploadTempDir);
+                break;
+            
+            
+            case FilepondRequestRoute::LOAD_LOCAL_FILE():
+                throw new \BadFunctionCallException("NOT IMPLEMENTED");
+                break;
+            
+            
+            case FilepondRequestRoute::PATCH_FILE_TRANSFER():
+                throw new \BadFunctionCallException("NOT IMPLEMENTED");
+                break;
+            
+        }
+    }
+    
+    
+    
+    public function getRequestRoute(): FilepondRequestRoute
+    {
+        switch ($this->getRequest()->getMethod()) {
+            case RequestMethodInterface::METHOD_POST:
+                if (isset($_FILES[$this->fieldname]) || isset($_POST[$this->fieldname])) {
+                    return FilepondRequestRoute::FILE_TRANSFER();
+                }
+                break;
+            
+            case RequestMethodInterface::METHOD_DELETE:
+                return FilepondRequestRoute::REVERT_FILE_TRANSFER();
+            
             case RequestMethodInterface::METHOD_GET:
             case RequestMethodInterface::METHOD_HEAD:
             case RequestMethodInterface::METHOD_PATCH:
-                $transferId = $this->getRequest()->getQueryParams()['fetch']
-                    ?? $this->getRequest()->getQueryParams()['restore']
-                    ?? $this->getRequest()->getQueryParams()['load']
-                    ?? $this->getRequest()->getQueryParams()['patch']
-                    ?? '';
-                $this->fileUploads[] = FileUpload::createFromTransferId($transferId, $uploadTempDir);
-                break;
+                if ($this->getRequest()->getQueryParams()['fetch'] ?? false) {
+                    return FilepondRequestRoute::FETCH_REMOTE_FILE();
+                }
+                if ($this->getRequest()->getQueryParams()['restore'] ?? false) {
+                    return FilepondRequestRoute::RESTORE_FILE_TRANSFER();
+                }
+                if ($this->getRequest()->getQueryParams()['load'] ?? false) {
+                    return FilepondRequestRoute::LOAD_LOCAL_FILE();
+                }
+                if ($this->getRequest()->getQueryParams()['patch'] ?? false) {
+                    return FilepondRequestRoute::PATCH_FILE_TRANSFER();
+                }
         }
+        
+        return FilepondRequestRoute::UNKNOWN();
     }
     
     
@@ -119,31 +166,21 @@ class FilepondRequest
     
     public function isFileTransfer(): bool
     {
-        if ($this->getRequest()->getMethod() === RequestMethodInterface::METHOD_POST) {
-            return isset($_FILES[$this->fieldname]) || isset($_POST[$this->fieldname]);
-        }
-        return false;
+        return ($this->getRequestRoute() == FilepondRequestRoute::FILE_TRANSFER());
     }
     
     
     
     public function isRevertFileTransfer(): bool
     {
-        if ($this->getRequest()->getMethod() === RequestMethodInterface::METHOD_DELETE) {
-            return true;
-        }
-        return false;
+        return ($this->getRequestRoute() == FilepondRequestRoute::REVERT_FILE_TRANSFER());
     }
     
     
     
     public function isRestoreRequest(): bool
     {
-        if (($this->getRequest()->getMethod() === RequestMethodInterface::METHOD_GET)
-            && ($this->getRequest()->getQueryParams()['restore'] ?? false)) {
-            return true;
-        }
-        return false;
+        return ($this->getRequestRoute() == FilepondRequestRoute::RESTORE_FILE_TRANSFER());
     }
     
     
