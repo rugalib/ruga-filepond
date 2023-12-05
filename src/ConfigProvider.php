@@ -9,6 +9,9 @@ declare(strict_types=1);
 namespace Ruga\Filepond;
 
 
+use Ruga\Filepond\Middleware\FilepondMiddleware;
+use Ruga\Filepond\Middleware\FilepondMiddlewareFactory;
+
 /**
  * ConfigProvider.
  *
@@ -19,10 +22,15 @@ class ConfigProvider
     public function __invoke()
     {
         return [
+            Filepond::class => [
+                'upload-dir' => __DIR__,
+            ],
             'dependencies' => [
                 'services' => [],
                 'aliases' => [],
-                'factories' => [],
+                'factories' => [
+                    FilepondMiddleware::class => FilepondMiddlewareFactory::class
+                ],
                 'invokables' => [],
                 'delegators' => [],
             ],

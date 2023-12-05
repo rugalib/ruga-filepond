@@ -47,25 +47,16 @@
       <path value="$PROJECT_DIR$/vendor/myclabs/deep-copy" />
       <path value="$PROJECT_DIR$/vendor/nikic/php-parser" />
       <path value="$PROJECT_DIR$/vendor/theseer/tokenizer" />
-      <path value="$PROJECT_DIR$/vendor/laminas/laminas-cache-storage-deprecated-factory" />
-      <path value="$PROJECT_DIR$/vendor/laminas/laminas-eventmanager" />
-      <path value="$PROJECT_DIR$/vendor/laminas/laminas-cache-storage-adapter-memory" />
-      <path value="$PROJECT_DIR$/vendor/laminas/laminas-json" />
-      <path value="$PROJECT_DIR$/vendor/laminas/laminas-cache-storage-adapter-filesystem" />
-      <path value="$PROJECT_DIR$/vendor/laminas/laminas-db" />
-      <path value="$PROJECT_DIR$/vendor/laminas/laminas-cache" />
       <path value="$PROJECT_DIR$/vendor/laminas/laminas-config" />
       <path value="$PROJECT_DIR$/vendor/rugalib/ruga-log" />
-      <path value="$PROJECT_DIR$/vendor/laminas/laminas-serializer" />
       <path value="$PROJECT_DIR$/vendor/rugalib/ruga-std" />
-      <path value="$PROJECT_DIR$/vendor/rugalib/ruga-db" />
-      <path value="$PROJECT_DIR$/vendor/stella-maris/clock" />
-      <path value="$PROJECT_DIR$/vendor/webmozart/assert" />
-      <path value="$PROJECT_DIR$/vendor/psr/simple-cache" />
-      <path value="$PROJECT_DIR$/vendor/psr/clock" />
-      <path value="$PROJECT_DIR$/vendor/psr/cache" />
       <path value="$PROJECT_DIR$/vendor/psr/log" />
       <path value="$PROJECT_DIR$/vendor/psr/http-message" />
+      <path value="$PROJECT_DIR$/vendor/fig/http-message-util" />
+      <path value="$PROJECT_DIR$/vendor/psr/http-server-middleware" />
+      <path value="$PROJECT_DIR$/vendor/psr/http-server-handler" />
+      <path value="$PROJECT_DIR$/vendor/psr/http-factory" />
+      <path value="$PROJECT_DIR$/vendor/laminas/laminas-diactoros" />
     </include_path>
   </component>
   <component name="PhpProjectSharedConfiguration" php_language_level="7.4" />
