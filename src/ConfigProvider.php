@@ -23,13 +23,13 @@ class ConfigProvider
     {
         return [
             Filepond::class => [
-                'upload-dir' => __DIR__,
+                Filepond::CONF_UPLOAD_TEMP_DIR => __DIR__ . '/../tmp',
             ],
             'dependencies' => [
                 'services' => [],
                 'aliases' => [],
                 'factories' => [
-                    FilepondMiddleware::class => FilepondMiddlewareFactory::class
+                    FilepondMiddleware::class => FilepondMiddlewareFactory::class,
                 ],
                 'invokables' => [],
                 'delegators' => [],

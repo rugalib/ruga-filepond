@@ -14,16 +14,50 @@ use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\MiddlewareInterface;
 use Psr\Http\Server\RequestHandlerInterface;
+use Ruga\Filepond\Filepond;
 
 
 /**
- * RugaformMiddleware creates a RugaformRequest from a form request and tries to find the desired plugin.
- * If found, the process method is executed and returns a RugaformResponse, which is returned to the client form.
+ * FilepondMiddleware creates a FilepondRequest from a request and tries to find the desired plugin.
+ * If found, the process method is executed and returns a FilepondResponse, which is returned to the client.
  *
- * @see     RugaformMiddlewareFactory
+ * @see     FilepondMiddlewareFactory
  */
 class FilepondMiddleware implements MiddlewareInterface
 {
+    private array $config;
+    private string $uploadTempDir;
+    
+    
+    
+    public function __construct(array $config)
+    {
+        $this->config = $config;
+        $uploadTempDir = $this->config[Filepond::CONF_UPLOAD_TEMP_DIR] ?? '';
+        $this->setUploadTempDir($uploadTempDir);
+    }
+    
+    
+    
+    /**
+     * Check and store the temporary upload directory.
+     *
+     * @param string $uploadTempDir
+     *
+     * @return void
+     */
+    private function setUploadTempDir(string $uploadTempDir)
+    {
+        if (empty($uploadTempDir)) {
+            throw new \InvalidArgumentException("Config option '" . Filepond::CONF_UPLOAD_TEMP_DIR . "' is empty");
+        }
+        
+        if (!($realbasepath = realpath($uploadTempDir)) || !is_dir($realbasepath)) {
+            throw new \InvalidArgumentException("'{$uploadTempDir}' is not found or is not a directory");
+        }
+        $this->uploadTempDir = $realbasepath;
+    }
+    
     
     
     /**
@@ -40,7 +74,7 @@ class FilepondMiddleware implements MiddlewareInterface
         
         try {
             foreach ($entries as $fieldname) {
-                $filepondRequest = new FilepondRequest($request->withAttribute('fieldname', $fieldname));
+                $filepondRequest = new FilepondRequest($request, $fieldname, $this->uploadTempDir);
                 
                 if ($filepondRequest->isFileTransfer()) {
                     return $this->processFileTransfer($filepondRequest);
@@ -48,6 +82,10 @@ class FilepondMiddleware implements MiddlewareInterface
                 
                 if ($filepondRequest->isRevertFileTransfer()) {
                     return $this->processRevertFileTransfer($filepondRequest);
+                }
+                
+                if ($filepondRequest->isRestoreRequest()) {
+                    return $this->processRestoreRequest($filepondRequest);
                 }
             }
             
@@ -66,13 +104,13 @@ class FilepondMiddleware implements MiddlewareInterface
     {
         \Ruga\Log::functionHead();
         
-        if (count($request->getFiles()) == 0) {
+        if (count($request->getFileUploads()) == 0) {
             return new EmptyResponse(400);
         }
         
         // test if server had trouble copying files
         /** @var FileUpload $fileUpload */
-        foreach ($request->getFiles() as $fileUpload) {
+        foreach ($request->getFileUploads() as $fileUpload) {
             if ($fileUpload->hasError()) {
                 return new EmptyResponse(500);
             }
@@ -80,7 +118,7 @@ class FilepondMiddleware implements MiddlewareInterface
         
         // test if files are of invalid format
         /** @var FileUpload $fileUpload */
-        foreach ($request->getFiles() as $fileUpload) {
+        foreach ($request->getFileUploads() as $fileUpload) {
             if (false) {
                 return new EmptyResponse(415);
             }
@@ -88,8 +126,7 @@ class FilepondMiddleware implements MiddlewareInterface
         
         // Store files
         /** @var FileUpload $fileUpload */
-        foreach ($request->getFiles() as $fileUpload) {
-            $fileUpload->prepareDirectory();
+        foreach ($request->getFileUploads() as $fileUpload) {
             $fileUpload->storeMetadata();
             $fileUpload->storeFile();
             
@@ -106,15 +143,33 @@ class FilepondMiddleware implements MiddlewareInterface
         \Ruga\Log::functionHead();
         
         
-        if (count($request->getFiles()) == 0) {
-            return new EmptyResponse(400);
+        if (count($request->getFileUploads()) == 0) {
+            return new EmptyResponse(404);
         }
         
         /** @var FileUpload $fileUpload */
-        foreach ($request->getFiles() as $fileUpload) {
+        foreach ($request->getFileUploads() as $fileUpload) {
             $fileUpload->deleteDirectory();
         }
         return new EmptyResponse(204);
+    }
+    
+    
+    
+    private function processRestoreRequest(FilepondRequest $request): ResponseInterface
+    {
+        \Ruga\Log::functionHead();
+        
+        if (count($request->getFileUploads()) == 0) {
+            return new EmptyResponse(404);
+        }
+        
+        /** @var FileUpload $file */
+        $file=$request->getFileUploads()[0];
+        
+        return $file->getFileResponse();
+        
+//        return new EmptyResponse(500);
     }
     
     

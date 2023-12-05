@@ -239,5 +239,3 @@ demos/
 extras/documentation
 
 # End of https://www.toptal.com/developers/gitignore/api/phpunit,eclipse,composer,phpstorm,codesniffer,zendframework,phpcodesniffer
-
-src/filepond-server-php-master/

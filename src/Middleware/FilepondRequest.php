@@ -22,14 +22,13 @@ class FilepondRequest
     
     private string $fieldname;
     
-    
     private array $fileUploads = [];
     
     private ?string $transferId = null;
     
     
     
-    public function __construct(ServerRequestInterface $request, $fieldname = 'filepond')
+    public function __construct(ServerRequestInterface $request, string $fieldname, string $uploadTempDir)
     {
         $this->fieldname = $fieldname;
         $this->request = $request;
@@ -42,6 +41,7 @@ class FilepondRequest
                 // Create a FileUpload object for each uploaded file
                 if (isset($_FILES[$fieldname])) {
                     if (is_array($_FILES[$fieldname]['tmp_name'])) {
+                        // input type=file is an array input
                         foreach ($_FILES[$fieldname]['tmp_name'] as $key => $value) {
                             $file = [
                                 'tmp_name' => $_FILES[$fieldname]['tmp_name'][$key],
@@ -52,20 +52,34 @@ class FilepondRequest
                             ];
                             $this->fileUploads[] = new FileUpload(
                                 $file,
-                                @json_decode($_POST[$fieldname][$key], true) ?? []
+                                @json_decode($_POST[$fieldname][$key], true) ?? [],
+                                $uploadTempDir
                             );
                         }
+                    } else {
+                        $this->fileUploads[] = new FileUpload(
+                            $_FILES[$fieldname],
+                            @json_decode($_POST[$fieldname], true) ?? [],
+                            $uploadTempDir
+                        );
                     }
-                    $this->fileUploads[] = new FileUpload(
-                        $_FILES[$fieldname],
-                        @json_decode($_POST[$fieldname], true) ?? []
-                    );
                 }
                 break;
             
             case RequestMethodInterface::METHOD_DELETE:
                 $transferId = file_get_contents('php://input');
-                $this->fileUploads[] = FileUpload::createFromTransferId($transferId, __DIR__);
+                $this->fileUploads[] = FileUpload::createFromTransferId($transferId, $uploadTempDir);
+                break;
+                
+            case RequestMethodInterface::METHOD_GET:
+            case RequestMethodInterface::METHOD_HEAD:
+            case RequestMethodInterface::METHOD_PATCH:
+                $transferId = $this->getRequest()->getQueryParams()['fetch']
+                    ?? $this->getRequest()->getQueryParams()['restore']
+                    ?? $this->getRequest()->getQueryParams()['load']
+                    ?? $this->getRequest()->getQueryParams()['patch']
+                    ?? '';
+                $this->fileUploads[] = FileUpload::createFromTransferId($transferId, $uploadTempDir);
                 break;
         }
     }
@@ -84,7 +98,7 @@ class FilepondRequest
     
     
     
-    public function getFiles(): array
+    public function getFileUploads(): array
     {
         return $this->fileUploads;
     }
@@ -116,6 +130,17 @@ class FilepondRequest
     public function isRevertFileTransfer(): bool
     {
         if ($this->getRequest()->getMethod() === RequestMethodInterface::METHOD_DELETE) {
+            return true;
+        }
+        return false;
+    }
+    
+    
+    
+    public function isRestoreRequest(): bool
+    {
+        if (($this->getRequest()->getMethod() === RequestMethodInterface::METHOD_GET)
+            && ($this->getRequest()->getQueryParams()['restore'] ?? false)) {
             return true;
         }
         return false;

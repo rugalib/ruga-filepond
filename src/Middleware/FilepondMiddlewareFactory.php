@@ -10,6 +10,7 @@ namespace Ruga\Filepond\Middleware;
 
 use Psr\Container\ContainerInterface;
 use Psr\Http\Server\MiddlewareInterface;
+use Ruga\Filepond\Filepond;
 
 /**
  * This factory creates a FilepondMiddleware. FilepondMiddleware is responsible for handling all the requests for
@@ -22,6 +23,7 @@ class FilepondMiddlewareFactory
 {
     public function __invoke(ContainerInterface $container): MiddlewareInterface
     {
-        return new FilepondMiddleware(/* $container->get(DatasourcePluginManager::class) */);
+        $config = $container->get('config')[Filepond::class] ?? [];
+        return new FilepondMiddleware($config /* $container->get(DatasourcePluginManager::class) */);
     }
 }
