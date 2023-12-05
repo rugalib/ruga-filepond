@@ -51,7 +51,7 @@ class FileUpload
      */
     public static function createFromTransferId(string $transferId, string $basepath): self
     {
-        $path = $basepath . DIRECTORY_SEPARATOR . $transferId . DIRECTORY_SEPARATOR . '.serialize';
+        $path = $basepath . DIRECTORY_SEPARATOR . $transferId . DIRECTORY_SEPARATOR . '.fileupload';
         if (!is_file($path)) {
             throw new \InvalidArgumentException("Transfer not found");
         }
@@ -142,7 +142,7 @@ class FileUpload
     
     
     
-    public function storeMetadata()
+    public function storeUploadTempMetafile()
     {
         $a = [
             'transferId' => $this->getTransferId(),
@@ -158,7 +158,12 @@ class FileUpload
     
     
     
-    public function storeFile()
+    /**
+     * Store the upload temporary data file.
+     *
+     * @return void
+     */
+    public function storeUploadTempFile()
     {
         if (!is_uploaded_file($this->tmp_name)) {
             throw new \InvalidArgumentException("'{$this->tmp_name}' is not an uploaded file");
@@ -171,7 +176,12 @@ class FileUpload
     
     
     
-    public function deleteDirectory()
+    /**
+     * Remove the upload temporary directory.
+     *
+     * @return void
+     */
+    public function deleteUploadTempDir()
     {
         $files = glob($this->getTransferDirectory() . DIRECTORY_SEPARATOR . '{.,}*', GLOB_BRACE);
         @array_map('unlink', $files);

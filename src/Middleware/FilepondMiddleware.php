@@ -127,8 +127,8 @@ class FilepondMiddleware implements MiddlewareInterface
         // Store files
         /** @var FileUpload $fileUpload */
         foreach ($request->getFileUploads() as $fileUpload) {
-            $fileUpload->storeMetadata();
-            $fileUpload->storeFile();
+            $fileUpload->storeUploadTempMetafile();
+            $fileUpload->storeUploadTempFile();
             
             return new TextResponse($fileUpload->getTransferId(), 201);
         }
@@ -149,7 +149,7 @@ class FilepondMiddleware implements MiddlewareInterface
         
         /** @var FileUpload $fileUpload */
         foreach ($request->getFileUploads() as $fileUpload) {
-            $fileUpload->deleteDirectory();
+            $fileUpload->deleteUploadTempDir();
         }
         return new EmptyResponse(204);
     }
