@@ -143,11 +143,11 @@ class FilepondMiddleware implements MiddlewareInterface
         // Store files
         /** @var FileUpload $fileUpload */
         foreach ($request->getFileUploads() as $fileUpload) {
-            $fileUpload->storeUploadTempMetafile();
             if ($fileUpload->isUploadedFileComplete()) {
                 $fileUpload->storeUploadDataFromUploadFile();
             }
             
+            $fileUpload->storeUploadTempMetafile();
             return new TextResponse($fileUpload->getTransferId(), 201);
         }
         
@@ -210,7 +210,6 @@ class FilepondMiddleware implements MiddlewareInterface
             return $file->getHeadResponse(200);
         }
         
-        
         return $file->getFileResponse();
     }
     
@@ -234,14 +233,14 @@ class FilepondMiddleware implements MiddlewareInterface
             return new EmptyResponse(404);
         }
         
-        /** @var FileUpload $file */
-        $file = $request->getFileUploads()[0];
+        /** @var FileUpload $fileUpload */
+        $fileUpload = $request->getFileUploads()[0];
         
         if ($request->getRequest()->getMethod() == RequestMethodInterface::METHOD_HEAD) {
-            return $file->getHeadResponse();
+            return $fileUpload->getHeadResponse();
         }
         
-        return $file->getFileResponse();
+        return $fileUpload->getFileResponse();
     }
     
     
@@ -277,6 +276,7 @@ class FilepondMiddleware implements MiddlewareInterface
         
         // HEAD request: return the offset
         if ($request->getRequest()->getMethod() == RequestMethodInterface::METHOD_HEAD) {
+            $file->storeUploadTempMetafile();
             return $file->getHeadResponse();
         }
         

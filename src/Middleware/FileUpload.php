@@ -307,6 +307,7 @@ class FileUpload
         if (!move_uploaded_file($this->tmp_name, $this->getTempDataFileName())) {
             throw new \RuntimeException("Error moving '{$this->tmp_name}'");
         }
+        $this->updateContentType();
     }
     
     
@@ -337,6 +338,7 @@ class FileUpload
                 throw new \RuntimeException("Error copying '{$this->tmp_name}'");
             }
         }
+        $this->updateContentType();
     }
     
     
@@ -367,6 +369,20 @@ class FileUpload
     
     
     /**
+     * Update the type from data file, if it is empty.
+     *
+     * @return void
+     */
+    private function updateContentType()
+    {
+        if (empty($this->type) && $this->isDataFile()) {
+            $this->type = mime_content_type($this->getTempDataFileName());
+        }
+    }
+    
+    
+    
+    /**
      * Checks, if upload (chunked) file is complete.
      *
      * @return bool
@@ -375,8 +391,20 @@ class FileUpload
     public function isUploadedFileComplete(): bool
     {
         clearstatcache();
-        \Ruga\Log::addLog("{$this->tmp_name} | filesize=" . filesize($this->tmp_name) . " | size=" . $this->size);
         return is_file($this->tmp_name) && (filesize($this->tmp_name) == $this->size);
+    }
+    
+    
+    
+    /**
+     * Checks, if data file exists.
+     *
+     * @return bool
+     */
+    public function isDataFile(): bool
+    {
+        clearstatcache();
+        return is_file($this->getTempDataFileName()) && (filesize($this->getTempDataFileName()) == $this->size);
     }
     
     
@@ -405,6 +433,7 @@ class FileUpload
      */
     public function getFileResponse(): ResponseInterface
     {
+        $this->updateContentType();
         $fileStream = new Stream($this->getTempDataFileName(), 'r');
         $response = new Response($fileStream);
         $response = $response->withHeader(
@@ -425,6 +454,7 @@ class FileUpload
      * @param int $status
      *
      * @return ResponseInterface
+     * @throws \Exception
      */
     public function getHeadResponse(int $status = 204): ResponseInterface
     {
