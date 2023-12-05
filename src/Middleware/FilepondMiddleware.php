@@ -263,31 +263,31 @@ class FilepondMiddleware implements MiddlewareInterface
             return new EmptyResponse(404);
         }
         
-        /** @var FileUpload $file */
-        $file = $request->getFileUploads()[0];
+        /** @var FileUpload $fileUpload */
+        $fileUpload = $request->getFileUploads()[0];
 
 //        $contentlength = intval($request->getRequest()->getHeaderLine('Content-Length'));
 //        $uploadlength = intval($request->getRequest()->getHeaderLine('Upload-Length'));
         $offset = intval($request->getRequest()->getHeaderLine('Upload-Offset'));
         $name = strval($request->getRequest()->getHeaderLine('Upload-Name'));
         
-        $file->setName($name);
+        $fileUpload->setName($name);
         
         
         // HEAD request: return the offset
         if ($request->getRequest()->getMethod() == RequestMethodInterface::METHOD_HEAD) {
-            $file->storeUploadTempMetafile();
-            return $file->getHeadResponse();
+            $fileUpload->storeUploadTempMetafile();
+            return $fileUpload->getHeadResponse();
         }
         
-        $file->storeUploadChunk(new Stream('php://input', 'r'), $offset);
+        $fileUpload->storeUploadChunk(new Stream('php://input', 'r'), $offset);
         
-        if ($file->isUploadedFileComplete()) {
-            $file->storeUploadDataFromFile(true);
+        if ($fileUpload->isUploadedFileComplete()) {
+            $fileUpload->storeUploadDataFromFile(true);
         }
         
-        $file->storeUploadTempMetafile();
-        return new EmptyResponse(204);
+        $fileUpload->storeUploadTempMetafile();
+        return $fileUpload->getHeadResponse();
     }
     
     

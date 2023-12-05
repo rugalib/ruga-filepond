@@ -462,6 +462,14 @@ class FileUpload
         if (is_file($this->getTempChunkFileName()) && !$this->isUploadedFileComplete()) {
             $response = $response->withHeader('Upload-Offset', filesize($this->getTempChunkFileName()));
         }
+        
+        /*
+        $this->updateContentType();
+        $response = $response->withHeader('Content-Type', $this->type);
+        $response = $response->withHeader('Content-Length', $this->size);
+        $response = $response->withHeader('Content-Disposition', "inline; filename=\"{$this->name}\"");
+        */
+        
         return $response->withHeader('X-Content-Transfer-Id', $this->getTransferId());
     }
     
