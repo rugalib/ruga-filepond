@@ -14,4 +14,5 @@ namespace Ruga\Filepond;
 class Filepond
 {
     const CONF_UPLOAD_TEMP_DIR = 'upload-temp-dir';
+    const CONF_FS_PLUGIN = 'filesystem-plugin';
 }

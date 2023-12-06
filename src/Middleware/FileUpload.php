@@ -25,6 +25,7 @@ class FileUpload
     private int $error;
     private array $metadata;
     private string $basepath;
+    private string $fetchUrl;
     
     
     
@@ -102,15 +103,31 @@ class FileUpload
      */
     public static function createFromFetchUrl(string $fetchUrl, string $basepath): self
     {
-        $tempfile = tmpfile();
-        
+        $fileUpload = FileUpload::createFromMetadata([], $basepath);
+        $fileUpload->setFetchUrl($fetchUrl);
+        $fileUpload->fetchFile(true);
+        return $fileUpload;
+    }
+    
+    
+    
+    public function fetchFile(bool $headOnly = false)
+    {
         // go!
-        $ch = curl_init(str_replace(' ', '%20', $fetchUrl));
-        curl_setopt($ch, CURLOPT_FILE, $tempfile);
+        $ch = curl_init(str_replace(' ', '%20', $this->getFetchUrl()));
         curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
         curl_setopt($ch, CURLOPT_TIMEOUT, 50);
         
-        if (!curl_exec($ch)) {
+        if ($headOnly) {
+//            curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'HEAD');
+            curl_setopt($ch, CURLOPT_NOBODY, true);
+//            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        } else {
+            $tempfile = tmpfile();
+            curl_setopt($ch, CURLOPT_FILE, $tempfile);
+        }
+        
+        if (false === ($response=curl_exec($ch))) {
             throw new \Exception(curl_error($ch), curl_errno($ch));
         }
         
@@ -121,18 +138,16 @@ class FileUpload
         curl_close($ch);
         
         
-        $fileGlobalVar = [
-            'tmp_name' => stream_get_meta_data($tempfile)['uri'],
-            'name' => pathinfo($fetchUrl)['basename'],
-            'type' => $type,
-            'size' => $size,
-            'error' => $code >= 200 && $code < 300 ? 0 : $code,
-        ];
+        $this->name = pathinfo($this->getFetchUrl())['basename'];
+        $this->type = strval($type);
+        $this->size = intval($size);
+        $this->error = intval(($code >= 200 && $code < 300) ? 0 : $code);
         
-        $fileUpload = new FileUpload($fileGlobalVar, [], $basepath);
-        $fileUpload->storeUploadTempMetafile();
-        $fileUpload->storeUploadDataFromFile();
-        return $fileUpload;
+        if (!$headOnly) {
+            $this->tmp_name = stream_get_meta_data($tempfile)['uri'];
+            $this->storeUploadDataFromFile();
+            $this->storeUploadTempMetafile();
+        }
     }
     
     
@@ -410,6 +425,19 @@ class FileUpload
     
     
     /**
+     * Checks, if chunk (temp temp) file exists.
+     *
+     * @return bool
+     */
+    public function isChunkFile(): bool
+    {
+        clearstatcache();
+        return is_file($this->getTempChunkFileName()) && (filesize($this->getTempChunkFileName()) > 0);
+    }
+    
+    
+    
+    /**
      * Remove the upload temporary directory.
      *
      * @return void
@@ -431,11 +459,11 @@ class FileUpload
      *
      * @return ResponseInterface
      */
-    public function getFileResponse(): ResponseInterface
+    public function getFileResponse(int $status = 200): ResponseInterface
     {
         $this->updateContentType();
         $fileStream = new Stream($this->getTempDataFileName(), 'r');
-        $response = new Response($fileStream);
+        $response = new Response($fileStream, $status);
         $response = $response->withHeader(
             'Access-Control-Expose-Headers',
             'Content-Disposition, Content-Length, Content-Type, X-Content-Transfer-Id'
@@ -463,13 +491,32 @@ class FileUpload
             $response = $response->withHeader('Upload-Offset', filesize($this->getTempChunkFileName()));
         }
         
-        /*
+        $response = $response->withHeader(
+            'Access-Control-Expose-Headers',
+            'Content-Disposition, Content-Length, Content-Type, X-Content-Transfer-Id'
+        );
+        
         $this->updateContentType();
         $response = $response->withHeader('Content-Type', $this->type);
         $response = $response->withHeader('Content-Length', $this->size);
-        $response = $response->withHeader('Content-Disposition', "inline; filename=\"{$this->name}\"");
-        */
-        
+//        $response = $response->withHeader('Accept-Ranges', 'bytes');
+        $response = $response->withHeader('Content-Disposition', "attachment; filename=\"{$this->name}\"");
+        return $response->withHeader('X-Content-Transfer-Id', $this->getTransferId());
+    }
+    
+    
+    
+    /**
+     * Return a response containing the transfer id as text.
+     *
+     * @param int $status
+     *
+     * @return ResponseInterface
+     * @throws \Exception
+     */
+    public function getTextResponse(int $status = 201): ResponseInterface
+    {
+        $response = new Response\TextResponse($this->getTransferId(), $status);
         return $response->withHeader('X-Content-Transfer-Id', $this->getTransferId());
     }
     
@@ -492,6 +539,18 @@ class FileUpload
     
     
     /**
+     * Get upload length.
+     *
+     * @return int
+     */
+    public function getUploadLength(): int
+    {
+        return $this->size;
+    }
+    
+    
+    
+    /**
      * Set the client (real) file name.
      *
      * @param string $name
@@ -502,4 +561,56 @@ class FileUpload
     {
         $this->name = $name;
     }
+    
+    
+    
+    /**
+     * Get the client (real) file name.
+     *
+     * @return string
+     */
+    public function getName(): string
+    {
+        return $this->name;
+    }
+    
+    
+    
+    /**
+     * Return the type of the uploaded file.
+     *
+     * @return string
+     */
+    public function getType(): string
+    {
+        $this->updateContentType();
+        if (empty($this->type) && $this->isChunkFile()) {
+            $this->type = mime_content_type($this->getTempChunkFileName());
+        }
+        
+        return $this->type;
+    }
+    
+    
+    
+    public function getFetchUrl(): string
+    {
+        return $this->fetchUrl;
+    }
+    
+    
+    
+    private function setFetchUrl(string $fetchUrl): void
+    {
+        $this->fetchUrl = $fetchUrl;
+    }
+    
+    
+    
+    public function getError(): int
+    {
+        return $this->error;
+    }
+    
+    
 }

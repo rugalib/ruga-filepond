@@ -110,13 +110,13 @@ class FilepondRequest
                 $transferId = $this->getRequest()->getQueryParams()['load'] ?? '';
                 throw new \BadFunctionCallException("NOT IMPLEMENTED");
                 break;
-                
+            
             
             case FilepondRequestRoute::REMOVE_LOCAL_FILE():
                 $transferId = $this->getRequest()->getQueryParams()['remove'] ?? '';
                 throw new \BadFunctionCallException("NOT IMPLEMENTED");
                 break;
-                
+            
             
             case FilepondRequestRoute::PATCH_FILE_TRANSFER():
                 $transferId = $this->getRequest()->getQueryParams()['patch'] ?? '';
@@ -219,69 +219,6 @@ class FilepondRequest
     public function getPluginAlias(): string
     {
         return $this->getRequestPathParts()[0] ?? '';
-    }
-    
-    
-    
-    /**
-     * Return true, if current data for the form is requested.
-     *
-     * @return bool
-     */
-    public function isFormGetRequest(): bool
-    {
-        return ($this->getRequest()->getMethod() == RequestMethodInterface::METHOD_GET);
-    }
-    
-    
-    
-    /**
-     * Return true, if the request asks to delete the row.
-     *
-     * @return bool
-     */
-    public function isFormDeleteRequest(): bool
-    {
-        return ($this->getRequest()->getMethod() == RequestMethodInterface::METHOD_DELETE);
-    }
-    
-    
-    
-    /**
-     * Return true, if the request asks to set the favourite value.
-     *
-     * @return bool
-     */
-    public function isFormSetFavourite(): bool
-    {
-        return (($this->getRequest()->getMethod() == RequestMethodInterface::METHOD_POST)
-                || ($this->getRequest()->getMethod() == RequestMethodInterface::METHOD_PUT))
-            && array_key_exists(Rugaform::FAVOURITE, $this->data);
-    }
-    
-    
-    
-    /**
-     * Return true, if the request asks to create a row.
-     *
-     * @return bool
-     */
-    public function isFormCreateRow(): bool
-    {
-        return ($this->getRequest()->getMethod() == RequestMethodInterface::METHOD_POST) && !$this->isFormSetFavourite(
-            );
-    }
-    
-    
-    
-    /**
-     * Return true, if the request asks to update a row.
-     *
-     * @return bool
-     */
-    public function isFormUpdateRow(): bool
-    {
-        return ($this->getRequest()->getMethod() == RequestMethodInterface::METHOD_PUT) && !$this->isFormSetFavourite();
     }
     
     

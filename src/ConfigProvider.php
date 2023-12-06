@@ -9,6 +9,10 @@ declare(strict_types=1);
 namespace Ruga\Filepond;
 
 
+use Ruga\Filepond\FilesystemPlugin\FilesystemPluginManager;
+use Ruga\Filepond\FilesystemPlugin\FilesystemPluginManagerFactory;
+use Ruga\Filepond\FilesystemPlugin\NoOp;
+use Ruga\Filepond\FilesystemPlugin\NoOpFactory;
 use Ruga\Filepond\Middleware\FilepondMiddleware;
 use Ruga\Filepond\Middleware\FilepondMiddlewareFactory;
 
@@ -24,12 +28,21 @@ class ConfigProvider
         return [
             Filepond::class => [
                 Filepond::CONF_UPLOAD_TEMP_DIR => __DIR__ . '/../tmp',
+                Filepond::CONF_FS_PLUGIN => [
+                    'aliases' => [
+                        'noop' => NoOp::class,
+                    ],
+                    'factories' => [
+                        NoOp::class => NoOpFactory::class,
+                    ],
+                ],
             ],
             'dependencies' => [
                 'services' => [],
                 'aliases' => [],
                 'factories' => [
                     FilepondMiddleware::class => FilepondMiddlewareFactory::class,
+                    FilesystemPluginManager::class => FilesystemPluginManagerFactory::class,
                 ],
                 'invokables' => [],
                 'delegators' => [],
