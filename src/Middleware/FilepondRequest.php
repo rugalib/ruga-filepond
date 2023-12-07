@@ -151,12 +151,18 @@ class FilepondRequest
             return FilepondRequestRoute::FETCH_REMOTE_FILE();
         }
         
-        if (in_array($this->getRequest()->getMethod(), [RequestMethodInterface::METHOD_GET])
+        if (in_array(
+                $this->getRequest()->getMethod(),
+                [RequestMethodInterface::METHOD_GET, RequestMethodInterface::METHOD_HEAD]
+            )
             && ($this->getRequest()->getQueryParams()['restore'] ?? false)) {
             return FilepondRequestRoute::RESTORE_FILE_TRANSFER();
         }
         
-        if (in_array($this->getRequest()->getMethod(), [RequestMethodInterface::METHOD_GET])
+        if (in_array(
+                $this->getRequest()->getMethod(),
+                [RequestMethodInterface::METHOD_GET, RequestMethodInterface::METHOD_HEAD]
+            )
             && ($this->getRequest()->getQueryParams()['load'] ?? false)) {
             return FilepondRequestRoute::LOAD_LOCAL_FILE();
         }

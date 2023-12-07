@@ -83,12 +83,18 @@ class FilepondMiddleware implements MiddlewareInterface
         try {
             foreach ($entries as $fieldname) {
                 $filepondRequest = new FilepondRequest($request, $fieldname, $this->uploadTempDir);
+                \Ruga\Log::addLog(
+                    "Processing {$filepondRequest->getRequestRoute()->getName()} request",
+                    \Ruga\Log\Severity::INFORMATIONAL
+                );
+                
                 $this->filesystemPlugin = $this->filesystemPluginManager->get($filepondRequest->getPluginAlias());
                 $this->filesystemPlugin->preProcess($filepondRequest);
                 
-                
-                if (count($filepondRequest->getFileUploads()) == 0) {
+                if (($filepondRequest->getRequestRoute() != FilepondRequestRoute::UNKNOWN())
+                    && (count($filepondRequest->getFileUploads()) == 0)) {
                     // No file uploads
+                    \Ruga\Log::addLog("FileUpload not found", \Ruga\Log\Severity::ERROR);
                     return new EmptyResponse(404); // Not Found
                 }
                 
@@ -114,10 +120,11 @@ class FilepondMiddleware implements MiddlewareInterface
                 }
             }
             
+            \Ruga\Log::addLog("Request not implemented", \Ruga\Log\Severity::CRITICAL);
             return new EmptyResponse(501); // Not Implemented
         } catch (\Exception $e) {
             \Ruga\Log::addLog($e);
-            return new TextResponse($e->getMessage() . PHP_EOL . $e->getTraceAsString(), 500); // Internal Server Error
+            return new TextResponse($e->getMessage(), 500); // Internal Server Error
         }
     }
     

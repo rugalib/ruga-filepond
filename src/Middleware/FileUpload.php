@@ -498,7 +498,7 @@ class FileUpload
     
     
     /**
-     * Return a response containing all required headers and content from upload file.
+     * Return a response containing all the headers and content from upload file in the body.
      *
      * @param int $status
      *
@@ -514,15 +514,16 @@ class FileUpload
     
     
     /**
-     * Return a response containing all headers for a HEAD request.
+     * Return a response containing all the headers for a HEAD request, but no data in the body.
      *
      * @param int $status
      *
      * @return ResponseInterface
      * @throws \Exception
      */
-    public function getHeadResponse(int $status = 204): ResponseInterface
+    public function getHeadResponse(int $status = 200): ResponseInterface
     {
+        // $status=204 removes headers Content-Type and Content-Length
         $response = new Response\EmptyResponse($status);
         if (is_file($this->getTempChunkFileName()) && !$this->isUploadedFileComplete()) {
             $response = $response->withHeader('Upload-Offset', filesize($this->getTempChunkFileName()));
@@ -536,15 +537,14 @@ class FileUpload
         $this->updateContentType();
         $response = $response->withHeader('Content-Type', $this->type);
         $response = $response->withHeader('Content-Length', $this->size);
-//        $response = $response->withHeader('Accept-Ranges', 'bytes');
-        $response = $response->withHeader('Content-Disposition', "attachment; filename=\"{$this->name}\"");
+        $response = $response->withHeader('Content-Disposition', "inline; filename=\"{$this->name}\"");
         return $response->withHeader('X-Content-Transfer-Id', $this->getTransferId());
     }
     
     
     
     /**
-     * Return a response containing the transfer id as text.
+     * Return a response containing the transfer id in the body.
      *
      * @param int $status
      *
