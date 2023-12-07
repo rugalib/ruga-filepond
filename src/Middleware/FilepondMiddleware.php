@@ -276,6 +276,7 @@ class FilepondMiddleware implements MiddlewareInterface
             return new EmptyResponse(403); // Forbidden
         }
         
+        $fileUpload->storeUploadTempMetafile();
         
         if ($request->getRequest()->getMethod() == RequestMethodInterface::METHOD_HEAD) {
             return $this->filesystemPlugin->loadComplete($fileUpload, $fileUpload->getHeadResponse());
