@@ -107,8 +107,8 @@ class FilepondRequest
             
             
             case FilepondRequestRoute::LOAD_LOCAL_FILE():
-                $transferId = $this->getRequest()->getQueryParams()['load'] ?? '';
-                throw new \BadFunctionCallException("NOT IMPLEMENTED");
+                $foreignKey = $this->getRequest()->getQueryParams()['load'] ?? '';
+                $this->fileUploads[] = FileUpload::createFromForeignKey($foreignKey, $uploadTempDir);
                 break;
             
             

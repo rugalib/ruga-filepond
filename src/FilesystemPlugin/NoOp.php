@@ -8,7 +8,9 @@ declare(strict_types=1);
 
 namespace Ruga\Filepond\FilesystemPlugin;
 
+use Laminas\Diactoros\Stream;
 use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\StreamInterface;
 use Ruga\Filepond\Middleware\FilepondRequest;
 use Ruga\Filepond\Middleware\FilepondRequestRoute;
 use Ruga\Filepond\Middleware\FileUpload;
@@ -72,6 +74,7 @@ class NoOp implements FilesystemPluginInterface
     }
     
     
+    
     /**
      * @inheritdoc
      */
@@ -81,7 +84,26 @@ class NoOp implements FilesystemPluginInterface
             "RESTORE request for file '{$fileUpload->getName()}' allowed?",
             \Ruga\Log\Severity::INFORMATIONAL
         );
+
+//        if($fileUpload->getName() == 'rufus-3.20.exe') {
+//            return false;
+//        }
         
+        return true;
+    }
+    
+    
+    
+    /**
+     * @inheritdoc
+     */
+    public function isLoadAllowed(FileUpload $fileUpload, FilepondRequest $request): bool
+    {
+        \Ruga\Log::addLog(
+            "LOAD request for file '{$fileUpload->getName()}' allowed?",
+            \Ruga\Log\Severity::INFORMATIONAL
+        );
+
 //        if($fileUpload->getName() == 'rufus-3.20.exe') {
 //            return false;
 //        }
@@ -172,7 +194,7 @@ class NoOp implements FilesystemPluginInterface
     public function fetchComplete(FileUpload $fileUpload, ResponseInterface $response): ResponseInterface
     {
         \Ruga\Log::addLog(
-            "File '{$fileUpload->getName()}' has been fetched from '{$fileUpload->getFetchUrl()}' and stored in temporary folder '{$fileUpload->getTransferDirectory()}' is deleted",
+            "File '{$fileUpload->getName()}' has been fetched from '{$fileUpload->getFetchUrl()}' and stored in temporary folder '{$fileUpload->getTransferDirectory()}'",
             \Ruga\Log\Severity::INFORMATIONAL
         );
         return $response;
@@ -186,10 +208,53 @@ class NoOp implements FilesystemPluginInterface
     public function restoreComplete(FileUpload $fileUpload, ResponseInterface $response): ResponseInterface
     {
         \Ruga\Log::addLog(
-            "File '{$fileUpload->getName()}' has been restored from temporary folder '{$fileUpload->getTransferDirectory()}' is deleted",
+            "File '{$fileUpload->getName()}' has been RESTOREd from temporary folder '{$fileUpload->getTransferDirectory()}'",
             \Ruga\Log\Severity::INFORMATIONAL
         );
         return $response;
+    }
+    
+    
+    
+    /**
+     * @inheritdoc
+     */
+    public function loadComplete(FileUpload $fileUpload, ResponseInterface $response): ResponseInterface
+    {
+        \Ruga\Log::addLog(
+            "File '{$fileUpload->getName()}' has been LOADed to temporary folder '{$fileUpload->getTransferDirectory()}'",
+            \Ruga\Log\Severity::INFORMATIONAL
+        );
+        return $response;
+    }
+    
+    
+    
+    /**
+     * @inheritdoc
+     */
+    public function loadFileInformation(FileUpload $fileUpload, FilepondRequest $request): void
+    {
+        \Ruga\Log::addLog(
+            "Give information about foreign key '{$fileUpload->getForeignKey()}' and LOAD to temporary folder '{$fileUpload->getTransferDirectory()}'",
+            \Ruga\Log\Severity::INFORMATIONAL
+        );
+        
+        $fileUpload->setName('helloworld.txt');
+        $fileUpload->setUploadLength(100000000);
+    }
+    
+    
+    
+    /**
+     * @inheritdoc
+     */
+    public function getStreamFromForeignKey(FileUpload $fileUpload, FilepondRequest $request): StreamInterface
+    {
+        $stream = new Stream('php://temp', 'wb+');
+        $stream->write('HELLOWORLD');
+        $stream->rewind();
+        return $stream;
     }
     
     

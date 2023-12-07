@@ -26,6 +26,7 @@ class FileUpload
     private array $metadata;
     private string $basepath;
     private string $fetchUrl;
+    private string $foreignKey;
     
     
     
@@ -111,6 +112,25 @@ class FileUpload
     
     
     
+    /**
+     * This factory creates a FileUpload from a fetch url. The file is downloaded from an external source and stored
+     * in a upload directory.
+     *
+     * @param string $foreignKey
+     * @param string $basepath
+     *
+     * @return self
+     */
+    public static function createFromForeignKey(string $foreignKey, string $basepath): self
+    {
+        $fileUpload = FileUpload::createFromMetadata([], $basepath);
+        $fileUpload->setForeignKey($foreignKey);
+//        $fileUpload->fetchFile(true);
+        return $fileUpload;
+    }
+    
+    
+    
     public function fetchFile(bool $headOnly = false)
     {
         // go!
@@ -127,7 +147,7 @@ class FileUpload
             curl_setopt($ch, CURLOPT_FILE, $tempfile);
         }
         
-        if (false === ($response=curl_exec($ch))) {
+        if (false === ($response = curl_exec($ch))) {
             throw new \Exception(curl_error($ch), curl_errno($ch));
         }
         
@@ -455,14 +475,15 @@ class FileUpload
     
     
     /**
-     * Return a response containing all headers and stream for file download.
+     * Return a response containing all required headers and content a given stream.
+     *
+     * @param Stream $fileStream
+     * @param int    $status
      *
      * @return ResponseInterface
      */
-    public function getFileResponse(int $status = 200): ResponseInterface
+    public function getStreamResponse(Stream $fileStream, int $status = 200): ResponseInterface
     {
-        $this->updateContentType();
-        $fileStream = new Stream($this->getTempDataFileName(), 'r');
         $response = new Response($fileStream, $status);
         $response = $response->withHeader(
             'Access-Control-Expose-Headers',
@@ -472,6 +493,22 @@ class FileUpload
         $response = $response->withHeader('Content-Length', $this->size);
         $response = $response->withHeader('Content-Disposition', "inline; filename=\"{$this->name}\"");
         return $response->withHeader('X-Content-Transfer-Id', $this->getTransferId());
+    }
+    
+    
+    
+    /**
+     * Return a response containing all required headers and content from upload file.
+     *
+     * @param int $status
+     *
+     * @return ResponseInterface
+     */
+    public function getFileResponse(int $status = 200): ResponseInterface
+    {
+        $this->updateContentType();
+        $fileStream = new Stream($this->getTempDataFileName(), 'r');
+        return $this->getStreamResponse($fileStream, $status);
     }
     
     
@@ -610,6 +647,20 @@ class FileUpload
     public function getError(): int
     {
         return $this->error;
+    }
+    
+    
+    
+    public function getForeignKey(): string
+    {
+        return $this->foreignKey;
+    }
+    
+    
+    
+    private function setForeignKey(string $foreignKey): void
+    {
+        $this->foreignKey = $foreignKey;
     }
     
     

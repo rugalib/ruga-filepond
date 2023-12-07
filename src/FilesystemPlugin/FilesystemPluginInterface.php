@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace Ruga\Filepond\FilesystemPlugin;
 
 use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\StreamInterface;
 use Ruga\Filepond\Middleware\FilepondRequest;
 use Ruga\Filepond\Middleware\FileUpload;
 
@@ -70,6 +71,18 @@ interface FilesystemPluginInterface
      * @return bool
      */
     public function isRestoreAllowed(FileUpload $fileUpload, FilepondRequest $request): bool;
+    
+    
+    
+    /**
+     * Checks if the LOAD request is allowed
+     *
+     * @param FileUpload      $fileUpload
+     * @param FilepondRequest $request
+     *
+     * @return bool
+     */
+    public function isLoadAllowed(FileUpload $fileUpload, FilepondRequest $request): bool;
     
     
     
@@ -155,5 +168,38 @@ interface FilesystemPluginInterface
      */
     public function restoreComplete(FileUpload $fileUpload, ResponseInterface $response): ResponseInterface;
     
+    
+    
+    /**
+     * Called every time a LOAD request is complete.
+     *
+     * @param FileUpload        $fileUpload
+     * @param ResponseInterface $response
+     *
+     * @return ResponseInterface
+     */
+    public function loadComplete(FileUpload $fileUpload, ResponseInterface $response): ResponseInterface;
+    
+    
+    
+    /**
+     * Populate FileUpload with information about the external file.
+     *
+     * @param FileUpload      $fileUpload
+     * @param FilepondRequest $request
+     */
+    public function loadFileInformation(FileUpload $fileUpload, FilepondRequest $request): void;
+    
+    
+    
+    /**
+     * Return a stream containing the data from an external source.
+     *
+     * @param FileUpload      $fileUpload
+     * @param FilepondRequest $request
+     *
+     * @return mixed
+     */
+    public function getStreamFromForeignKey(FileUpload $fileUpload, FilepondRequest $request): StreamInterface;
     
 }

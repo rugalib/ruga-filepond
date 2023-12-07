@@ -9,7 +9,6 @@ declare(strict_types=1);
 namespace Ruga\Filepond\Middleware;
 
 use Fig\Http\Message\RequestMethodInterface;
-use http\Client\Response;
 use Laminas\Diactoros\Response\EmptyResponse;
 use Laminas\Diactoros\Response\TextResponse;
 use Laminas\Diactoros\Stream;
@@ -109,6 +108,9 @@ class FilepondMiddleware implements MiddlewareInterface
                     
                     case FilepondRequestRoute::PATCH_FILE_TRANSFER():
                         return $this->processPatchRequest($filepondRequest);
+                    
+                    case FilepondRequestRoute::LOAD_LOCAL_FILE():
+                        return $this->processLoadRequest($filepondRequest);
                 }
             }
             
@@ -244,6 +246,43 @@ class FilepondMiddleware implements MiddlewareInterface
         }
         
         return $this->filesystemPlugin->restoreComplete($fileUpload, $fileUpload->getFileResponse());
+    }
+    
+    
+    
+    /**
+     * Process the load process.
+     *
+     * @see https://pqina.nl/filepond/docs/api/server/#load
+     *
+     * @param FilepondRequest $request
+     *
+     * @return ResponseInterface
+     * @throws \Exception
+     */
+    private function processLoadRequest(FilepondRequest $request): ResponseInterface
+    {
+        \Ruga\Log::functionHead();
+        
+        /** @var FileUpload $fileUpload */
+        $fileUpload = $request->getFileUploads()[0];
+        
+        
+        $this->filesystemPlugin->loadFileInformation($fileUpload, $request);
+        
+        
+        // test if LOAD is allowed
+        if (!$this->filesystemPlugin->isLoadAllowed($fileUpload, $request)) {
+            return new EmptyResponse(403); // Forbidden
+        }
+        
+        
+        if ($request->getRequest()->getMethod() == RequestMethodInterface::METHOD_HEAD) {
+            return $this->filesystemPlugin->loadComplete($fileUpload, $fileUpload->getHeadResponse());
+        }
+        
+        $stream = $this->filesystemPlugin->getStreamFromForeignKey($fileUpload, $request);
+        return $this->filesystemPlugin->loadComplete($fileUpload, $fileUpload->getStreamResponse($stream));
     }
     
     
