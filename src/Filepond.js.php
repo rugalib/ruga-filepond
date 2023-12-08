@@ -47,5 +47,10 @@
                 }
             }
         });
+        
+        pond_<?=$this->getId()?>.filepond('on', 'initfile', (file) => {
+            const defaultMetadata = <?=json_encode($this->getDefaultMetadata())?>;
+            file.setMetadata(defaultMetadata);
+        });
     });
 }(window.jQuery, window, document));

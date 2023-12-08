@@ -20,12 +20,14 @@ class Filepond
     private string $id;
     private string $url;
     private array $filesProperty = [];
+    private object $defaultMetadata;
     
     
     
     public function __construct(string $url)
     {
         $this->url = $url;
+        $this->defaultMetadata = new \stdClass();
     }
     
     
@@ -57,6 +59,11 @@ class Filepond
         return $this->filesProperty;
     }
     
+    
+    public function getDefaultMetadata(): object
+    {
+        return $this->defaultMetadata;
+    }
     
     
     public function setFilesProperty(array $filesProperty): void
