@@ -8,11 +8,12 @@ declare(strict_types=1);
 
 namespace Ruga\Filepond;
 
-
 use Ruga\Filepond\FilesystemPlugin\FilesystemPluginManager;
 use Ruga\Filepond\FilesystemPlugin\FilesystemPluginManagerFactory;
 use Ruga\Filepond\FilesystemPlugin\NoOp;
 use Ruga\Filepond\FilesystemPlugin\NoOpFactory;
+use Ruga\Filepond\FilesystemPlugin\RugaDms;
+use Ruga\Filepond\FilesystemPlugin\RugaDmsFactory;
 use Ruga\Filepond\Middleware\FilepondMiddleware;
 use Ruga\Filepond\Middleware\FilepondMiddlewareFactory;
 
@@ -31,9 +32,11 @@ class ConfigProvider
                 Filepond::CONF_FS_PLUGIN => [
                     'aliases' => [
                         'noop' => NoOp::class,
+                        'ruga-dms' => RugaDms::class,
                     ],
                     'factories' => [
                         NoOp::class => NoOpFactory::class,
+                        RugaDms::class => RugaDmsFactory::class,
                     ],
                 ],
             ],

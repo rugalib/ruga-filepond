@@ -12,10 +12,9 @@ use Laminas\Diactoros\Stream;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\StreamInterface;
 use Ruga\Filepond\Middleware\FilepondRequest;
-use Ruga\Filepond\Middleware\FilepondRequestRoute;
 use Ruga\Filepond\Middleware\FileUpload;
 
-class NoOp implements FilesystemPluginInterface
+class NoOp extends AbstractFilesystemPlugin implements FilesystemPluginInterface
 {
     /**
      * @inheritdoc
