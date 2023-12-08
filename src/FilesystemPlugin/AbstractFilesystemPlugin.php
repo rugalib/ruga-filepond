@@ -49,6 +49,16 @@ abstract class AbstractFilesystemPlugin implements FilesystemPluginInterface
     /**
      * @inheritDoc
      */
+    public function isUploadAllowed(FileUpload $fileUpload, FilepondRequest $request): bool
+    {
+        return true;
+    }
+    
+    
+    
+    /**
+     * @inheritDoc
+     */
     public function isRevertAllowed(FileUpload $fileUpload, FilepondRequest $request): bool
     {
         return true;

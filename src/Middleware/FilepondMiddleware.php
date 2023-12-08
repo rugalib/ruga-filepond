@@ -120,11 +120,14 @@ class FilepondMiddleware implements MiddlewareInterface
                 }
             }
             
-            \Ruga\Log::addLog("Request not implemented", \Ruga\Log\Severity::CRITICAL);
-            return new EmptyResponse(501); // Not Implemented
-        } catch (\Exception $e) {
+            throw new \Exception("Request not implemented");
+        } catch (\Throwable $e) {
             \Ruga\Log::addLog($e);
-            return new TextResponse($e->getMessage(), 500); // Internal Server Error
+            $status = 500;
+            if (($e->getCode() >= 400) && ($e->getCode() < 600)) {
+                $status = $e->getCode();
+            }
+            return new TextResponse($e->getMessage(), $status); // Internal Server Error
         }
     }
     
@@ -171,6 +174,15 @@ class FilepondMiddleware implements MiddlewareInterface
                 return new EmptyResponse(415); // Unsupported Media Type
             }
         }
+        
+        // test if files are of invalid format
+        /** @var FileUpload $fileUpload */
+        foreach ($request->getFileUploads() as $fileUpload) {
+            if (!$this->filesystemPlugin->isUploadAllowed($fileUpload, $request)) {
+                return new EmptyResponse(400); // Unsupported Media Type
+            }
+        }
+        
         
         // Store files
         /** @var FileUpload $fileUpload */

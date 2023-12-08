@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Ruga\Filepond\FilesystemPlugin;
 
+use Laminas\Diactoros\Response\EmptyResponse;
 use Psr\Http\Message\ResponseInterface;
 use Ruga\Dms\Document\DocumentType;
 use Ruga\Dms\Library\LibraryInterface;
@@ -36,10 +37,20 @@ class RugaDms extends AbstractFilesystemPlugin implements FilesystemPluginInterf
         \Ruga\Log::functionHead();
         
         $a = $request->getRequestPathParts();
-        \Ruga\Log::addLog("a=" . print_r($a, true));
         $libraryName = $a[1];
         
         $this->library = $this->libraryManager->createLibraryFromName($libraryName);
+    }
+    
+    
+    
+    public function isUploadAllowed(FileUpload $fileUpload, FilepondRequest $request): bool
+    {
+        $linkTo = $fileUpload->getMetadata()['linkTo'] ?? '';
+        if (empty($linkTo)) {
+            throw new \InvalidArgumentException("Parameter 'linkTo' is missing in metadata", 400);
+        }
+        return true;
     }
     
     
@@ -54,13 +65,19 @@ class RugaDms extends AbstractFilesystemPlugin implements FilesystemPluginInterf
         $documentType = new DocumentType($fileUpload->getMetadata()['documentType'] ?? DocumentType::GENERIC);
         $document = $this->library->createDocument($fileUpload->getName(), $documentType);
         $document->setContentFromFile($fileUpload->getTempDataFileName());
+        
+        $linkTo = $fileUpload->getMetadata()['linkTo'] ?? '';
+        if (empty($linkTo)) {
+            throw new \InvalidArgumentException("Parameter 'linkTo' is missing in metadata", 400);
+        }
+        
+        $document->linkTo($linkTo);
         $document->save();
         \Ruga\Log::addLog(
             "File '{$fileUpload->getName()}' stored to library in '{$document->getMetaStorageContainer()->getDataUniqueKey()}'",
             \Ruga\Log\Severity::INFORMATIONAL
         );
         
-        $fileUpload->deleteUploadTempDir();
         return $response;
     }
     

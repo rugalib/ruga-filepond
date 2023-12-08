@@ -51,6 +51,18 @@ interface FilesystemPluginInterface
     
     
     /**
+     * Checks if uploads are allowed
+     *
+     * @param FileUpload      $fileUpload
+     * @param FilepondRequest $request
+     *
+     * @return bool
+     */
+    public function isUploadAllowed(FileUpload $fileUpload, FilepondRequest $request): bool;
+    
+    
+    
+    /**
      * Checks if the REVERT request is allowed
      *
      * @param FileUpload      $fileUpload

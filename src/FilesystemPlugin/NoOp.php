@@ -63,6 +63,20 @@ class NoOp extends AbstractFilesystemPlugin implements FilesystemPluginInterface
     /**
      * @inheritdoc
      */
+    public function isUploadAllowed(FileUpload $fileUpload, FilepondRequest $request): bool
+    {
+        \Ruga\Log::addLog(
+            "file upload transferId='{$fileUpload->getTransferId()}' allowed?",
+            \Ruga\Log\Severity::INFORMATIONAL
+        );
+        return true;
+    }
+    
+    
+    
+    /**
+     * @inheritdoc
+     */
     public function isRevertAllowed(FileUpload $fileUpload, FilepondRequest $request): bool
     {
         \Ruga\Log::addLog(
