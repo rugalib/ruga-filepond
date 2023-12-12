@@ -64,6 +64,7 @@ class RugaDms extends AbstractFilesystemPlugin implements FilesystemPluginInterf
         
         $documentType = new DocumentType($fileUpload->getMetadata()['documentType'] ?? DocumentType::GENERIC);
         $document = $this->library->createDocument($fileUpload->getName(), $documentType);
+        $document->setFilename($fileUpload->getName());
         $document->setContentFromFile($fileUpload->getTempDataFileName());
         
         $linkTo = $fileUpload->getMetadata()['linkTo'] ?? '';

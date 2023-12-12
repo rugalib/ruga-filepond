@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace Ruga\Filepond\Middleware;
 
 use Fig\Http\Message\RequestMethodInterface;
+use Fig\Http\Message\StatusCodeInterface;
 use Laminas\Diactoros\Response\EmptyResponse;
 use Laminas\Diactoros\Response\TextResponse;
 use Laminas\Diactoros\Stream;
@@ -95,7 +96,7 @@ class FilepondMiddleware implements MiddlewareInterface
                     && (count($filepondRequest->getFileUploads()) == 0)) {
                     // No file uploads
                     \Ruga\Log::addLog("FileUpload not found", \Ruga\Log\Severity::ERROR);
-                    return new EmptyResponse(404); // Not Found
+                    return new EmptyResponse(StatusCodeInterface::STATUS_NOT_FOUND); // Not Found
                 }
                 
                 
@@ -120,14 +121,11 @@ class FilepondMiddleware implements MiddlewareInterface
                 }
             }
             
-            throw new \Exception("Request not implemented");
+            throw new \Exception("Request not implemented", StatusCodeInterface::STATUS_NOT_IMPLEMENTED);
         } catch (\Throwable $e) {
             \Ruga\Log::addLog($e);
-            $status = 500;
-            if (($e->getCode() >= 400) && ($e->getCode() < 600)) {
-                $status = $e->getCode();
-            }
-            return new TextResponse($e->getMessage(), $status); // Internal Server Error
+            $status = (($e->getCode() >= 400) && ($e->getCode() < 600)) ? $e->getCode() : StatusCodeInterface::STATUS_INTERNAL_SERVER_ERROR;
+            return new TextResponse($e->getMessage(), $status);
         }
     }
     
